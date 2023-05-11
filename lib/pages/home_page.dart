@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:binus_mart/pages/list_data.dart';
 import 'package:binus_mart/pages/login_page.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -8,7 +12,26 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
+Future<List<dynamic>> fetchProducts() async {
+  final response =
+      await http.get(Uri.parse('https://fakestoreapi.com/products'));
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception('Failed to load products');
+  }
+}
+
 class _HomePageState extends State<HomePage> {
+  late Future<List<dynamic>> _products;
+
+  @override
+  void initState() {
+    super.initState();
+    _products = fetchProducts();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,13 +100,13 @@ class _HomePageState extends State<HomePage> {
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: 50.0,
+            horizontal: 30.0,
             vertical: 25.0,
           ),
           child: Column(
             children: [
               Container(
-                height: 300,
+                height: 230,
                 decoration: BoxDecoration(
                   color: Color(0xFF0a8a2e),
                   borderRadius: BorderRadius.circular(8),
@@ -138,6 +161,35 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
+              ),
+              SizedBox(
+                  height:
+                      20), // Add some space between the green box and the fetched data.
+              FutureBuilder<List<dynamic>>(
+                future: _products,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      itemCount: snapshot.data!.length,
+                      itemBuilder: (context, index) {
+                        final product = snapshot.data![index];
+                        return ListTile(
+                          leading: Image.network(product['image']),
+                          title: Text(product['title']),
+                          subtitle: Text("\$${product['price']}"),
+                          onTap: () {
+                            // Handle product tap
+                          },
+                        );
+                      },
+                    );
+                  } else if (snapshot.hasError) {
+                    return Text("${snapshot.error}");
+                  }
+                  return CircularProgressIndicator();
+                },
               ),
             ],
           ),
